@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Calculadora de média trimestral</title>
 <style>
-:root{--bg:#eef3fb;--card:#fff;--ink:#0f2347;--mute:#566888;--line:#d3deef;--acc:#1b4fa8;--hd:#1b4fa8;--field:#f6f9fe;
+:root{--bg:#eef3fb;--card:#fff;--ink:#0f2347;--mute:#566888;--line:#d3deef;--acc:#1b4fa8;--hd:#1b4fa8;--field:#f6f9fe;--ok:#1e7a46;--fin:#c2610c;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1426;--card:#121f38;--ink:#e6edfa;--mute:#93a4c4;--line:#243556;--acc:#6ea2f5;--hd:#16356f;--field:#0d182d;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0b1426;--card:#121f38;--ink:#e6edfa;--mute:#93a4c4;--line:#243556;--acc:#6ea2f5;--hd:#16356f;--field:#0d182d;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1426;--card:#121f38;--ink:#e6edfa;--mute:#93a4c4;--line:#243556;--acc:#6ea2f5;--hd:#16356f;--field:#0d182d;--ok:#5cd08a;--fin:#ffa24d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1426;--card:#121f38;--ink:#e6edfa;--mute:#93a4c4;--line:#243556;--acc:#6ea2f5;--hd:#16356f;--field:#0d182d;--ok:#5cd08a;--fin:#ffa24d;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Source Serif 4",Georgia,"Times New Roman",serif}
 main{max-width:560px;margin:0 auto;padding:24px 16px 40px}
@@ -42,6 +42,12 @@ button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink
 .chip{border:2px solid var(--c);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;font-size:.88rem}
 .chip[aria-pressed="true"]{background:var(--c);color:#fff;font-weight:600}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.frow{padding:12px 0;border-bottom:1px solid var(--line)}.frow:last-child{border-bottom:0}
+.fname{font-weight:600;margin-bottom:6px}
+.fin{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fin input{padding:8px 10px}
+.fstat{margin-top:6px;font-size:.88rem;font-weight:600}
+.fstat.ok{color:var(--ok)}.fstat.fin{color:var(--fin)}
+.bd{border:1.5px solid currentColor;border-radius:6px;padding:1px 7px;margin-right:6px;font-size:.8rem;letter-spacing:.03em}.fstat.mid{color:var(--mute);font-weight:400}
 </style>
 </head>
 <body>
@@ -51,6 +57,7 @@ button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink
 <div class="tabs" role="tablist">
 <button class="tab" id="t1" role="tab" aria-selected="true" type="button">Por matéria</button>
 <button class="tab" id="t2" role="tab" aria-selected="false" type="button">Média geral</button>
+<button class="tab" id="t3" role="tab" aria-selected="false" type="button">Final</button>
 </div>
 <div id="v1">
 
@@ -95,6 +102,14 @@ button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink
 </div>
 <div class="card" id="glist"></div>
 <p class="hint">Toque em uma matéria para editar as notas. A média geral é a média das matérias com nota, usando os valores como aparecem no boletim.</p>
+</div>
+<div id="v3" hidden>
+<div class="card">
+<h2>Vou para a final?</h2>
+<p class="hint" style="margin:0">Digite só a média de cada trimestre (a MTRIM do boletim). A média da escola é 8,0: se a média simples dos três trimestres ficar abaixo disso, a matéria vai para a final. Se for para a final, a nota necessária na prova é 12 menos a média anual. Com dois trimestres preenchidos, mostro quanto falta tirar no outro.</p>
+</div>
+<div class="card result" aria-live="polite"><div id="fsum"></div></div>
+<div class="card" id="flist"></div>
 </div>
 </main>
 <script>
@@ -178,16 +193,67 @@ function geral(){
     b.onclick=function(){cur=b.getAttribute("data-m");load();tab(1)};
   });
 }
+var fin={},MEDIA=8;
+try{fin=JSON.parse(localStorage.getItem("finalFGB")||"{}")}catch(e){fin={}}
+function saveF(){try{localStorage.setItem("finalFGB",JSON.stringify(fin))}catch(e){}}
+function c1(x){return (Math.ceil(x*10-1e-9)/10).toFixed(1).replace(".",",")}
+function stat(m){
+  var t=[0,1,2].map(function(i){return num((fin[m]||[])[i])});
+  var fl=t.filter(function(x){return x!==null}),sum=fl.reduce(function(a,b){return a+b},0);
+  if(fl.length===3){var avg=sum/3;
+    if(avg>=MEDIA)return {k:"ok",l:"APROVADO",t:"Média anual "+f(avg)};
+    var need=12-avg;
+    return {k:"fin",l:"FINAL",t:"Média anual "+f(avg)+". "+(need>10?"Nem com 10 na prova final passa":"Precisa tirar pelo menos "+c1(need)+" na prova final")};}
+  if(fl.length===2){
+    var falta=t.indexOf(null)+1,nd=MEDIA*3-sum;
+    if(nd<=0)return {k:"ok",l:"APROVADO",t:"Média garantida, mesmo com zero no "+falta+"º trimestre"};
+    if(nd>10)return {k:"fin",l:"FINAL",t:"Mesmo com 10 no "+falta+"º trimestre, vai para a final"};
+    return {k:"mid",l:"",t:"Precisa de pelo menos "+c1(nd)+" no "+falta+"º trimestre para passar direto"};
+  }
+  return {k:"mid",l:"",t:"Preencha pelo menos dois trimestres"};
+}
+function sh(r){return (r.l?'<b class="bd">'+r.l+'</b>':"")+r.t}
+function fsum(){
+  var bad=[],ok=0,open=0,any=false;
+  MATERIAS.forEach(function(m){var r=stat(m);
+    if(r.t.indexOf("Preencha")===0)return;any=true;
+    if(r.k==="fin")bad.push(lab(m));else if(r.k==="ok")ok++;else open++;});
+  $("fsum").innerHTML=!any?'<p class="msg">Preencha as médias dos trimestres para ver onde você fica.</p>'
+    :'<div class="big">'+bad.length+'</div><p class="exact">'+(bad.length===1?"matéria na final":"matérias na final")+'</p><dl><dt>Aprovadas</dt><dd>'+ok+'</dd><dt>Ainda em aberto</dt><dd>'+open+'</dd></dl>'+(bad.length?'<p class="exact" style="margin:10px 0 0">Na final: '+bad.join(", ")+'</p>':"");
+}
+function renderF(){
+  $("flist").innerHTML=MATERIAS.map(function(m){
+    var v=fin[m]||[],r=stat(m);
+    return '<div class="frow"><div class="fname"><i class="dot" style="background:'+COR[m]+'"></i>'+lab(m)+'</div><div class="fin">'+
+      [0,1,2].map(function(i){return '<input inputmode="decimal" placeholder="'+(i+1)+'º tri" aria-label="'+lab(m)+', '+(i+1)+'º trimestre" data-m="'+m+'" data-i="'+i+'" value="'+(v[i]||"")+'">'}).join("")+
+      '</div><div class="fstat '+r.k+'">'+sh(r)+'</div></div>';
+  }).join("");
+  fsum();
+}
+$("flist").addEventListener("input",function(e){
+  var el=e.target,m=el.getAttribute("data-m");if(!m)return;
+  fin[m]=fin[m]||["","",""];fin[m][+el.getAttribute("data-i")]=el.value;saveF();
+  var r=stat(m),st=el.closest(".frow").querySelector(".fstat");
+  st.className="fstat "+r.k;st.innerHTML=sh(r);fsum();
+});
 function tab(n){
-  $("v1").hidden=n!==1;$("v2").hidden=n!==2;
-  $("t1").setAttribute("aria-selected",n===1);$("t2").setAttribute("aria-selected",n===2);
+  $("v1").hidden=n!==1;$("v2").hidden=n!==2;$("v3").hidden=n!==3;
+  [1,2,3].forEach(function(i){$("t"+i).setAttribute("aria-selected",n===i)});
   if(n===2)geral();
+  if(n===3)renderF();
 }
 ids.forEach(function(i){$(i).addEventListener("input",function(){
   data[cur]=data[cur]||{};data[cur][i]=$(i).value;save();calc();
 })});
 $("clr").onclick=function(){data[cur]={};save();load()};
-$("t1").onclick=function(){tab(1)};$("t2").onclick=function(){tab(2)};
+document.addEventListener("input",function(e){
+  var el=e.target;if(el.tagName!=="INPUT")return;
+  var v=el.value.replace(/[^0-9.,]/g,""),k=v.search(/[.,]/);
+  if(k>=0)v=v.slice(0,k+1)+v.slice(k+1).replace(/[.,]/g,"").slice(0,2);
+  if(parseFloat(v.replace(",","."))>10)v="10";
+  if(v!==el.value)el.value=v;
+},true);
+$("t1").onclick=function(){tab(1)};$("t2").onclick=function(){tab(2)};$("t3").onclick=function(){tab(3)};
 load();
 </script>
 </body>
