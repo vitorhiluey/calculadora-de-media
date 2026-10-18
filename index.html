@@ -18,8 +18,8 @@ p.sub{margin:0 0 20px;color:var(--mute);font-size:.95rem}
 h2{font-size:1rem;margin:0 0 2px}
 .hint{color:var(--mute);font-size:.85rem;margin:0 0 12px}
 label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:4px}
-select,input{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-select:focus,input:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+select,input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+select:focus,input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:380px){.grid{grid-template-columns:1fr}}
 .result{background:color-mix(in srgb,var(--mc,#1b4fa8) 13%,var(--card));border:1px solid var(--line);border-left:6px solid var(--mc,#1b4fa8)}
@@ -48,24 +48,55 @@ button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink
 .fstat{margin-top:6px;font-size:.88rem;font-weight:600}
 .fstat.ok{color:var(--ok)}.fstat.fin{color:var(--fin)}
 .bd{border:1.5px solid currentColor;border-radius:6px;padding:1px 7px;margin-right:6px;font-size:.8rem;letter-spacing:.03em}.fstat.mid{color:var(--mute);font-weight:400}
+textarea{resize:vertical;font-size:.85rem}
+summary{cursor:pointer;font-weight:600}
+.seg{display:flex;gap:6px;margin-bottom:12px}.seg button{flex:1;padding:8px 0}
+.seg button[aria-pressed="true"]{background:var(--hd);color:#fff;border-color:var(--hd)}
+.bar{height:6px;background:var(--line);border-radius:3px;position:relative;margin-top:8px}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--c)}
+.bar u{position:absolute;left:80%;top:-3px;bottom:-3px;width:2px;background:var(--mute);opacity:.6}
+.th{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.th .nm{border:0;padding:0;text-align:left;font-weight:600;background:none;flex:1}
+.th input{width:84px;text-align:center}
+.nums{display:flex;gap:22px;font-size:.9rem;color:var(--mute);font-variant-numeric:tabular-nums;margin-top:4px}
+.nums b{color:var(--ink);font-weight:600;margin-left:3px}
+.need{display:flex;align-items:baseline;gap:10px;margin-top:10px;padding:9px 12px;border-radius:10px;border-left:4px solid var(--fin);background:color-mix(in srgb,var(--fin) 14%,var(--card))}
+.need.mid{border-left-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--card))}
+.need b{font-size:1.8rem;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.need span{font-size:.92rem}
 </style>
 </head>
 <body>
 <main>
-<header class="top"><h1>Calculadora de média trimestral</h1>
-<p>Preencha as notas que já saíram. O que ficar em branco é ignorado e os pesos se ajustam.</p></header>
+<header class="top"><h1>Calculadora de média</h1>
+<p>Notas, médias dos trimestres e situação no ano. O que ficar em branco é ignorado.</p></header>
 <div class="tabs" role="tablist">
-<button class="tab" id="t1" role="tab" aria-selected="true" type="button">Por matéria</button>
-<button class="tab" id="t2" role="tab" aria-selected="false" type="button">Média geral</button>
-<button class="tab" id="t3" role="tab" aria-selected="false" type="button">Final</button>
-</div>
-<div id="v1">
-
-<div class="card">
-<h2>Matéria</h2>
-<div id="chips" class="chips" role="group" aria-label="Matéria"></div>
+<button class="tab" id="tT" role="tab" aria-selected="true" type="button">Trimestre</button>
+<button class="tab" id="tA" role="tab" aria-selected="false" type="button">Ano</button>
+<button class="tab" id="tM" role="tab" aria-selected="false" type="button">Matéria</button>
 </div>
 
+<div id="vT">
+<div class="seg" id="segT" role="group" aria-label="Trimestre"></div>
+<details class="card"><summary>Colar do boletim</summary>
+<p class="hint" style="margin-top:8px">Copie as linhas da tabela do boletim, cole aqui e aperte Enter. Preenche os três trimestres, com as notas de cada prova na aba Matéria. Tudo é lido no seu aparelho.</p>
+<textarea id="ptxt" rows="3" placeholder="Cole aqui as linhas do boletim"></textarea>
+<div style="margin-top:8px"><button id="pbtn" type="button">Preencher as médias</button></div>
+<p class="hint" id="pmsg" style="margin:8px 0 0" aria-live="polite"></p></details>
+<div class="card result" aria-live="polite"><div id="tsum"></div></div>
+<div class="card" id="tlist"></div>
+<p class="hint">Digite a média de cada matéria (a MTRIM do boletim). A marca na barra é a média da escola, 8,0. Toque no nome para calcular a partir das notas.</p>
+</div>
+
+<div id="vA" hidden>
+<div class="card result" aria-live="polite"><div id="asum"></div></div>
+<div class="card" id="alist"></div>
+<p class="hint">Média anual = média simples dos três trimestres. Abaixo de 8 vai para a final, e a nota necessária na prova é 12 menos a média anual.</p>
+</div>
+
+<div id="vM" hidden>
+<div class="card"><h2>Matéria</h2><div id="chips" class="chips" role="group" aria-label="Matéria"></div></div>
+<div class="seg" id="segM" role="group" aria-label="Trimestre das notas"></div>
 <div class="card">
 <h2>Parte quantitativa</h2>
 <p class="hint">ACD 40% + Parcial 60% formam a média parcial (50%). Conclusiva 25% e Simulado 25%.</p>
@@ -75,9 +106,7 @@ button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink
 <div><label for="ac">Conclusiva</label><input id="ac" inputmode="decimal" placeholder="0 a 10"></div>
 <div><label for="sim">Simulado</label><input id="sim" inputmode="decimal" placeholder="0 a 10"></div>
 <div><label for="pex">Poupança pedagógica</label><input id="pex" inputmode="decimal" placeholder="ex.: 0,6"></div>
-</div>
-</div>
-
+</div></div>
 <div class="card">
 <h2>Parte qualitativa</h2>
 <p class="hint">Média simples das quatro notas.</p>
@@ -86,166 +115,142 @@ button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink
 <div><label for="q2">Comportamento e postura (AQL2)</label><input id="q2" inputmode="decimal" placeholder="0 a 10"></div>
 <div><label for="q3">Participação em sala (AQL3)</label><input id="q3" inputmode="decimal" placeholder="0 a 10"></div>
 <div><label for="q4">Responsabilidade (AQL4)</label><input id="q4" inputmode="decimal" placeholder="0 a 10"></div>
-</div>
-</div>
-
-<div class="card result" aria-live="polite">
-<h2 id="rtitle">Média trimestral</h2>
-<div id="out"><p class="msg">Digite ao menos uma nota para ver o resultado.</p></div>
-</div>
+</div></div>
+<div class="card result" aria-live="polite"><h2 id="rtitle">Média do trimestre</h2><div id="out"></div></div>
 <button id="clr" type="button">Limpar notas desta matéria</button>
-</div>
-<div id="v2" hidden>
-<div class="card result" aria-live="polite">
-<h2>Média geral do trimestre</h2>
-<div id="gout"></div>
-</div>
-<div class="card" id="glist"></div>
-<p class="hint">Toque em uma matéria para editar as notas. A média geral é a média das matérias com nota, usando os valores como aparecem no boletim.</p>
-</div>
-<div id="v3" hidden>
-<div class="card">
-<h2>Vou para a final?</h2>
-<p class="hint" style="margin:0">Digite só a média de cada trimestre (a MTRIM do boletim). A média da escola é 8,0: se a média simples dos três trimestres ficar abaixo disso, a matéria vai para a final. Se for para a final, a nota necessária na prova é 12 menos a média anual. Com dois trimestres preenchidos, mostro quanto falta tirar no outro.</p>
-</div>
-<div class="card result" aria-live="polite"><div id="fsum"></div></div>
-<div class="card" id="flist"></div>
 </div>
 </main>
 <script>
 var MATERIAS=["Língua Portuguesa","Literatura","Produção de Texto","Língua Inglesa","Arte","Educação Física","História","Geografia","Filosofia","Sociologia","Física","Química","Biologia","Matemática","Projeto de Vida","Espiritualidade","Maker (Ciências, Tecnologia e Empreendedorismo)"];
-var ids=["acd","ap2","ac","sim","pex","q1","q2","q3","q4"];
-var $=function(i){return document.getElementById(i)};
 var COR={"Língua Portuguesa":"#e0524d","Literatura":"#7c3aed","Produção de Texto":"#d6458a","Língua Inglesa":"#d9690f","Arte":"#b7791f","Educação Física":"#2a8f50","História":"#a0522d","Geografia":"#0b8f7e","Filosofia":"#5865d9","Sociologia":"#6b7f3a","Física":"#3b82f6","Química":"#c04aa8","Biologia":"#5fa31f","Matemática":"#c2185b","Projeto de Vida":"#e0643a","Espiritualidade":"#8e72cf"};
 COR[MATERIAS[16]]="#0891b2";
+var ids=["acd","ap2","ac","sim","pex","q1","q2","q3","q4"],MEDIA=8;
+var $=function(i){return document.getElementById(i)};
 function lab(m){return m.split(" (")[0]}
-function renderChips(){
-  $("chips").innerHTML=MATERIAS.map(function(m){return '<button type="button" class="chip" style="--c:'+COR[m]+'" aria-pressed="'+(m===cur)+'" data-m="'+m+'">'+lab(m)+'</button>'}).join("");
-  Array.prototype.forEach.call($("chips").querySelectorAll(".chip"),function(b){b.onclick=function(){cur=b.getAttribute("data-m");load()}});
-}
-
-var data={},cur=MATERIAS[0];
-try{data=JSON.parse(localStorage.getItem("notasFGB")||"{}")}catch(e){data={}}
-function save(){try{localStorage.setItem("notasFGB",JSON.stringify(data))}catch(e){}}
-function num(s){
-  s=(s||"").trim().replace(",",".");
-  if(s==="")return null;
-  var n=parseFloat(s);
-  return isNaN(n)?null:Math.max(0,Math.min(10,n));
-}
-function wavg(items){
-  var s=0,w=0;
-  items.forEach(function(it){if(it[0]!==null){s+=it[0]*it[1];w+=it[1]}});
-  return w?s/w:null;
-}
+function nrm(x){return x.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase()}
+function num(s){s=(s||"").trim().replace(",",".");if(s==="")return null;var n=parseFloat(s);return isNaN(n)?null:Math.max(0,Math.min(10,n))}
+function wavg(a){var s=0,w=0;a.forEach(function(x){if(x[0]!==null){s+=x[0]*x[1];w+=x[1]}});return w?s/w:null}
 function f(x){return x.toFixed(2).replace(".",",")}
 function tr(x){return Math.floor(x*10+1e-9)/10}
 function t1(x){return tr(x).toFixed(1).replace(".",",")}
-
+function c1(x){return (Math.ceil(x*10-1e-9)/10).toFixed(1).replace(".",",")}
+function rd(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+function wr(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+var data=rd("notasFGB2");
+if(!data){data={1:rd("notasFGB")||{},2:{},3:{}}}
+var med=rd("finalFGB")||{},cur=MATERIAS[0],T=1,MT=1;
+function saveD(){wr("notasFGB2",data)}function saveM(){wr("finalFGB",med)}
+function seg(id,get,set){
+  $(id).innerHTML=[1,2,3].map(function(i){return '<button type="button" aria-pressed="'+(get()===i)+'" data-i="'+i+'">'+i+'º trimestre</button>'}).join("");
+  Array.prototype.forEach.call($(id).querySelectorAll("button"),function(b){b.onclick=function(){set(+b.getAttribute("data-i"))}});
+}
 function compute(d){
   var v={};ids.forEach(function(i){v[i]=num(d[i])});
-  var parcial=wavg([[v.acd,.4],[v.ap2,.6]]);
-  var quant=wavg([[parcial,.5],[v.ac,.25],[v.sim,.25]]);
-  var pex=v.pex||0;
-  var quantP=quant===null?null:Math.min(10,quant+pex);
-  var qual=wavg([[v.q1,1],[v.q2,1],[v.q3,1],[v.q4,1]]);
+  var parcial=wavg([[v.acd,.4],[v.ap2,.6]]),quant=wavg([[parcial,.5],[v.ac,.25],[v.sim,.25]]),pex=v.pex||0;
+  var quantP=quant===null?null:Math.min(10,quant+pex),qual=wavg([[v.q1,1],[v.q2,1],[v.q3,1],[v.q4,1]]);
   if(quantP===null&&qual===null)return null;
-  var soACD=v.ap2===null&&v.ac===null&&v.sim===null;
-  var wq=soACD?.5:.7,total;
-  if(quantP===null)total=qual;
-  else if(qual===null)total=quantP;
-  else total=wq*quantP+(1-wq)*qual;
-  return {total:total,parcial:parcial,quant:quant,quantP:quantP,qual:qual,wq:wq,pex:pex,v:v};
+  var wq=(v.ap2===null&&v.ac===null&&v.sim===null)?.5:.7,total;
+  if(quantP===null)total=qual;else if(qual===null)total=quantP;else total=wq*quantP+(1-wq)*qual;
+  return {total:total,parcial:parcial,quant:quant,quantP:quantP,qual:qual,wq:wq,pex:pex};
 }
-
-function calc(){
-  var r=compute(data[cur]||{}),out=$("out");
-  if(!r){out.innerHTML='<p class="msg">Digite ao menos uma nota para ver o resultado.</p>';$("rtitle").textContent="Média trimestral";return}
-  var rows="";
-  if(r.parcial!==null)rows+="<dt>Média parcial</dt><dd>"+f(r.parcial)+"</dd>";
-  if(r.quant!==null){rows+="<dt>Média quantitativa</dt><dd>"+f(r.quant)+"</dd>";
-    if(r.pex)rows+="<dt>+ Poupança pedagógica</dt><dd>"+f(r.quantP)+"</dd>"}
-  if(r.qual!==null)rows+="<dt>Média qualitativa</dt><dd>"+f(r.qual)+"</dd>";
-  if(r.quantP!==null&&r.qual!==null)rows+="<dt>Pesos</dt><dd>"+Math.round(r.wq*100)+"% quant. + "+Math.round((1-r.wq)*100)+"% qual.</dd>";
-  $("rtitle").textContent="Média trimestral de "+cur;
-  out.innerHTML='<div class="big">'+t1(r.total)+'</div><p class="exact">valor exato: '+f(r.total)+'</p><dl>'+rows+'</dl>';
-}
-
-function load(){
-  var d=data[cur]||{};
-  ids.forEach(function(i){$(i).value=d[i]||""});
-  $("v1").style.setProperty("--mc",COR[cur]);
-  renderChips();
-  calc();
-}
-function geral(){
-  var vals=[],html="";
-  MATERIAS.forEach(function(m){
-    var r=compute(data[m]||{});
-    if(r)vals.push(tr(r.total));
-    html+='<button type="button" class="row" data-m="'+m+'"><span><i class="dot" style="background:'+COR[m]+'"></i>'+lab(m)+'</span>'+(r?'<b>'+t1(r.total)+'</b>':'<span class="na">sem notas</span>')+'</button>';
-  });
-  $("glist").innerHTML=html;
-  $("gout").innerHTML=vals.length
-    ?'<div class="big">'+t1(vals.reduce(function(a,b){return a+b},0)/vals.length)+'</div><p class="exact">média de '+vals.length+' de '+MATERIAS.length+' matérias</p>'
-    :'<p class="msg">Preencha as notas de pelo menos uma matéria para ver a média geral.</p>';
-  Array.prototype.forEach.call($("glist").querySelectorAll(".row"),function(b){
-    b.onclick=function(){cur=b.getAttribute("data-m");load();tab(1)};
-  });
-}
-var fin={},MEDIA=8;
-try{fin=JSON.parse(localStorage.getItem("finalFGB")||"{}")}catch(e){fin={}}
-function saveF(){try{localStorage.setItem("finalFGB",JSON.stringify(fin))}catch(e){}}
-function c1(x){return (Math.ceil(x*10-1e-9)/10).toFixed(1).replace(".",",")}
 function stat(m){
-  var t=[0,1,2].map(function(i){return num((fin[m]||[])[i])});
+  var t=[0,1,2].map(function(i){return num((med[m]||[])[i])});
   var fl=t.filter(function(x){return x!==null}),sum=fl.reduce(function(a,b){return a+b},0);
   if(fl.length===3){var avg=sum/3;
     if(avg>=MEDIA)return {k:"ok",l:"APROVADO",t:"Média anual "+f(avg)};
     var need=12-avg;
-    return {k:"fin",l:"FINAL",t:"Média anual "+f(avg)+". "+(need>10?"Nem com 10 na prova final passa":"Precisa tirar pelo menos "+c1(need)+" na prova final")};}
-  if(fl.length===2){
-    var falta=t.indexOf(null)+1,nd=MEDIA*3-sum;
+    if(need>10)return {k:"fin",l:"FINAL",t:"Média anual "+f(avg)+". Nem com 10 na prova final passa"};
+    return {k:"fin",l:"FINAL",t:"Média anual "+f(avg),n:c1(need),nt:"na prova final para passar"}}
+  if(fl.length===2){var falta=t.indexOf(null)+1,nd=MEDIA*3-sum;
     if(nd<=0)return {k:"ok",l:"APROVADO",t:"Média garantida, mesmo com zero no "+falta+"º trimestre"};
     if(nd>10)return {k:"fin",l:"FINAL",t:"Mesmo com 10 no "+falta+"º trimestre, vai para a final"};
-    return {k:"mid",l:"",t:"Precisa de pelo menos "+c1(nd)+" no "+falta+"º trimestre para passar direto"};
-  }
+    return {k:"mid",l:"",t:"Ainda em aberto",n:c1(nd),nt:"no "+falta+"º trimestre para passar direto"}}
   return {k:"mid",l:"",t:"Preencha pelo menos dois trimestres"};
 }
 function sh(r){return (r.l?'<b class="bd">'+r.l+'</b>':"")+r.t}
-function fsum(){
-  var bad=[],ok=0,open=0,any=false;
-  MATERIAS.forEach(function(m){var r=stat(m);
-    if(r.t.indexOf("Preencha")===0)return;any=true;
-    if(r.k==="fin")bad.push(lab(m));else if(r.k==="ok")ok++;else open++;});
-  $("fsum").innerHTML=!any?'<p class="msg">Preencha as médias dos trimestres para ver onde você fica.</p>'
-    :'<div class="big">'+bad.length+'</div><p class="exact">'+(bad.length===1?"matéria na final":"matérias na final")+'</p><dl><dt>Aprovadas</dt><dd>'+ok+'</dd><dt>Ainda em aberto</dt><dd>'+open+'</dd></dl>'+(bad.length?'<p class="exact" style="margin:10px 0 0">Na final: '+bad.join(", ")+'</p>':"");
+function pct(v){var n=num(v);return n===null?0:n*10}
+/* Trimestre */
+function tsum(){
+  var a=[];MATERIAS.forEach(function(m){var n=num((med[m]||[])[T-1]);if(n!==null)a.push([n,m])});
+  if(!a.length){$("tsum").innerHTML='<p class="msg">Preencha as médias do '+T+'º trimestre para ver a média geral.</p>';return}
+  var avg=a.reduce(function(s,x){return s+x[0]},0)/a.length,mx=a[0],mn=a[0],ab=0;
+  a.forEach(function(x){if(x[0]>mx[0])mx=x;if(x[0]<mn[0])mn=x;if(x[0]<MEDIA)ab++});
+  $("tsum").innerHTML='<h2>Média geral do '+T+'º trimestre</h2><div class="big">'+t1(avg)+'</div><p class="exact">valor exato: '+f(avg)+' ('+a.length+' de '+MATERIAS.length+' matérias)</p><dl><dt>Maior média</dt><dd>'+lab(mx[1])+' '+t1(mx[0])+'</dd><dt>Menor média</dt><dd>'+lab(mn[1])+' '+t1(mn[0])+'</dd><dt>Abaixo de 8</dt><dd>'+ab+'</dd></dl>';
 }
-function renderF(){
-  $("flist").innerHTML=MATERIAS.map(function(m){
-    var v=fin[m]||[],r=stat(m);
-    return '<div class="frow"><div class="fname"><i class="dot" style="background:'+COR[m]+'"></i>'+lab(m)+'</div><div class="fin">'+
-      [0,1,2].map(function(i){return '<input inputmode="decimal" placeholder="'+(i+1)+'º tri" aria-label="'+lab(m)+', '+(i+1)+'º trimestre" data-m="'+m+'" data-i="'+i+'" value="'+(v[i]||"")+'">'}).join("")+
-      '</div><div class="fstat '+r.k+'">'+sh(r)+'</div></div>';
-  }).join("");
-  fsum();
+function renderT(){
+  seg("segT",function(){return T},function(i){T=i;renderT()});
+  $("tlist").innerHTML=MATERIAS.map(function(m){var v=(med[m]||[])[T-1]||"";
+    return '<div class="frow"><div class="th"><button type="button" class="nm" data-go="'+m+'"><i class="dot" style="background:'+COR[m]+'"></i>'+lab(m)+'</button><input inputmode="decimal" placeholder="média" aria-label="'+lab(m)+', média do '+T+'º trimestre" data-m="'+m+'" value="'+v+'"></div><div class="bar" style="--c:'+COR[m]+'"><i style="width:'+pct(v)+'%"></i><u></u></div></div>'}).join("");
+  tsum();
 }
-$("flist").addEventListener("input",function(e){
+$("tlist").addEventListener("input",function(e){
   var el=e.target,m=el.getAttribute("data-m");if(!m)return;
-  fin[m]=fin[m]||["","",""];fin[m][+el.getAttribute("data-i")]=el.value;saveF();
-  var r=stat(m),st=el.closest(".frow").querySelector(".fstat");
-  st.className="fstat "+r.k;st.innerHTML=sh(r);fsum();
+  med[m]=med[m]||["","",""];med[m][T-1]=el.value;saveM();
+  el.closest(".frow").querySelector(".bar i").style.width=pct(el.value)+"%";tsum();
 });
-function tab(n){
-  $("v1").hidden=n!==1;$("v2").hidden=n!==2;$("v3").hidden=n!==3;
-  [1,2,3].forEach(function(i){$("t"+i).setAttribute("aria-selected",n===i)});
-  if(n===2)geral();
-  if(n===3)renderF();
+$("tlist").addEventListener("click",function(e){var b=e.target.closest("[data-go]");if(!b)return;cur=b.getAttribute("data-go");MT=T;tab("M")});
+function pasteBoletim(){
+  var n=0;
+  $("ptxt").value.split(/\r?\n/).forEach(function(line){
+    var p=line.trim().split(/\s+/),i=0;
+    while(i<p.length&&!/^(\d+(?:[.,]\d+)?|--?|zero)$/i.test(p[i]))i++;
+    if(i===0||i>=p.length)return;
+    var name=nrm(p.slice(0,i).join(" ")),vals=p.slice(i),best=null;
+    if(vals.length<44)return;
+    MATERIAS.forEach(function(m){var k=nrm(lab(m));if(name.indexOf(k)===0&&(!best||k.length>nrm(lab(best)).length))best=m});
+    if(!best)return;
+    med[best]=[13,28,43].map(function(j){return /^\d/.test(vals[j])?vals[j]:""});
+    [0,15,30].forEach(function(o,t){var d={};["acd","ap2","pex","ac","sim","q1","q2","q3","q4"].forEach(function(k,q){var x=vals[o+q];d[k]=/^\d/.test(x)?x:(x==="zero"?"0":"")});data[t+1][best]=d});n++;
+  });
+  saveM();saveD();renderT();
+  $("pmsg").textContent=n?"Preenchi "+n+(n===1?" matéria":" matérias")+" (médias e notas de cada prova). Confira se bate com o boletim.":"Não reconheci nenhuma matéria. Copie as linhas da tabela, começando pelo nome da matéria, e cole de novo.";
+  if(n)$("ptxt").value="";
+}
+$("pbtn").onclick=pasteBoletim;
+$("ptxt").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();pasteBoletim()}});
+/* Ano */
+function renderA(){
+  var avgs=[],fin=[],ok=0,open=0;
+  var rows=MATERIAS.map(function(m){
+    var v=[0,1,2].map(function(i){return num((med[m]||[])[i])}),fl=v.filter(function(x){return x!==null}),r=stat(m);
+    if(fl.length)avgs.push(fl.reduce(function(a,b){return a+b},0)/fl.length);
+    if(r.l==="FINAL")fin.push(lab(m));else if(r.l==="APROVADO")ok++;else open++;
+    return '<div class="frow"><div class="fname"><i class="dot" style="background:'+COR[m]+'"></i>'+lab(m)+'</div><div class="nums">'+v.map(function(x,i){return '<span>'+(i+1)+'º<b>'+(x===null?"–":t1(x))+'</b></span>'}).join("")+'</div><div class="fstat '+r.k+'">'+sh(r)+'</div>'+(r.n?'<div class="need '+(r.l==="FINAL"?"fin":"mid")+'"><b>'+r.n+'</b><span>'+r.nt+'</span></div>':"")+'</div>';
+  });
+  $("alist").innerHTML=rows.join("");
+  if(!avgs.length){$("asum").innerHTML='<p class="msg">Preencha as médias dos trimestres para ver a média do ano.</p>';return}
+  var avg=avgs.reduce(function(a,b){return a+b},0)/avgs.length;
+  $("asum").innerHTML='<h2>Média geral do ano</h2><div class="big">'+t1(avg)+'</div><p class="exact">valor exato: '+f(avg)+' (com os trimestres já preenchidos)</p><dl><dt>Aprovadas</dt><dd>'+ok+'</dd><dt>Na final</dt><dd>'+fin.length+'</dd><dt>Em aberto</dt><dd>'+open+'</dd></dl>'+(fin.length?'<p class="exact" style="margin:10px 0 0">Final em: '+fin.join(", ")+'</p>':"");
+}
+/* Matéria */
+function renderChips(){
+  $("chips").innerHTML=MATERIAS.map(function(m){return '<button type="button" class="chip" style="--c:'+COR[m]+'" aria-pressed="'+(m===cur)+'" data-m="'+m+'">'+lab(m)+'</button>'}).join("");
+  Array.prototype.forEach.call($("chips").querySelectorAll(".chip"),function(b){b.onclick=function(){cur=b.getAttribute("data-m");load()}});
+}
+function calc(){
+  var r=compute(data[MT][cur]||{}),out=$("out");
+  $("rtitle").textContent="Média do "+MT+"º trimestre: "+lab(cur);
+  if(!r){out.innerHTML='<p class="msg">Digite ao menos uma nota para ver o resultado.</p>';return}
+  var rows="";
+  if(r.parcial!==null)rows+="<dt>Média parcial</dt><dd>"+f(r.parcial)+"</dd>";
+  if(r.quant!==null){rows+="<dt>Média quantitativa</dt><dd>"+f(r.quant)+"</dd>";if(r.pex)rows+="<dt>+ Poupança pedagógica</dt><dd>"+f(r.quantP)+"</dd>"}
+  if(r.qual!==null)rows+="<dt>Média qualitativa</dt><dd>"+f(r.qual)+"</dd>";
+  if(r.quantP!==null&&r.qual!==null)rows+="<dt>Pesos</dt><dd>"+Math.round(r.wq*100)+"% quant. + "+Math.round((1-r.wq)*100)+"% qual.</dd>";
+  out.innerHTML='<div class="big">'+t1(r.total)+'</div><p class="exact">valor exato: '+f(r.total)+'</p><dl>'+rows+'</dl>';
+}
+function load(){
+  var d=data[MT][cur]||{};
+  ids.forEach(function(i){$(i).value=d[i]||""});
+  $("vM").style.setProperty("--mc",COR[cur]);
+  seg("segM",function(){return MT},function(i){MT=i;load()});
+  renderChips();calc();
 }
 ids.forEach(function(i){$(i).addEventListener("input",function(){
-  data[cur]=data[cur]||{};data[cur][i]=$(i).value;save();calc();
+  data[MT][cur]=data[MT][cur]||{};data[MT][cur][i]=$(i).value;saveD();calc();
+  var r=compute(data[MT][cur]);
+  if(r){med[cur]=med[cur]||["","",""];med[cur][MT-1]=t1(r.total);saveM()}
 })});
-$("clr").onclick=function(){data[cur]={};save();load()};
+$("clr").onclick=function(){data[MT][cur]={};saveD();load()};
 document.addEventListener("input",function(e){
   var el=e.target;if(el.tagName!=="INPUT")return;
   var v=el.value.replace(/[^0-9.,]/g,""),k=v.search(/[.,]/);
@@ -253,8 +258,12 @@ document.addEventListener("input",function(e){
   if(parseFloat(v.replace(",","."))>10)v="10";
   if(v!==el.value)el.value=v;
 },true);
-$("t1").onclick=function(){tab(1)};$("t2").onclick=function(){tab(2)};$("t3").onclick=function(){tab(3)};
-load();
+function tab(n){
+  ["T","A","M"].forEach(function(k){$("v"+k).hidden=k!==n;$("t"+k).setAttribute("aria-selected",k===n)});
+  if(n==="T")renderT();if(n==="A")renderA();if(n==="M")load();
+}
+["T","A","M"].forEach(function(k){$("t"+k).onclick=function(){tab(k)}});
+renderT();
 </script>
 </body>
 </html>
