@@ -69,7 +69,7 @@ summary{cursor:pointer;font-weight:600}
 <body>
 <main>
 <header class="top"><h1>Calculadora de média</h1>
-<p>Notas, médias dos trimestres e situação no ano. O que ficar em branco é ignorado.</p></header>
+<p>Notas, médias dos trimestres e situação no ano. O que ficar em branco conta como zero.</p></header>
 <div class="tabs" role="tablist">
 <button class="tab" id="tT" role="tab" aria-selected="true" type="button">Trimestre</button>
 <button class="tab" id="tA" role="tab" aria-selected="false" type="button">Ano</button>
@@ -99,21 +99,21 @@ summary{cursor:pointer;font-weight:600}
 <div class="seg" id="segM" role="group" aria-label="Trimestre das notas"></div>
 <div class="card">
 <h2>Parte quantitativa</h2>
-<p class="hint">ACD 40% + Parcial 60% formam a média parcial (50%). Conclusiva 25% e Simulado 25%.</p>
+<p class="hint">Notas não preenchidas contam como 0.</p>
 <div class="grid">
-<div><label for="acd">ACD (contínuas)</label><input id="acd" inputmode="decimal" placeholder="0 a 10"></div>
-<div><label for="ap2">Avaliação parcial</label><input id="ap2" inputmode="decimal" placeholder="0 a 10"></div>
-<div><label for="ac">Conclusiva</label><input id="ac" inputmode="decimal" placeholder="0 a 10"></div>
-<div><label for="sim">Simulado</label><input id="sim" inputmode="decimal" placeholder="0 a 10"></div>
-<div><label for="pex">Poupança pedagógica</label><input id="pex" inputmode="decimal" placeholder="ex.: 0,6"></div>
+<div id="wrap_acd"><label for="acd">AP1-ACD (contínuas)</label><input id="acd" inputmode="decimal" placeholder="0 a 10"></div>
+<div id="wrap_ap2"><label for="ap2">Avaliação parcial (AP2)</label><input id="ap2" inputmode="decimal" placeholder="0 a 10"></div>
+<div id="wrap_ac"><label for="ac">Conclusiva (AC)</label><input id="ac" inputmode="decimal" placeholder="0 a 10"></div>
+<div id="wrap_sim"><label for="sim">Simulado (SIM)</label><input id="sim" inputmode="decimal" placeholder="0 a 10"></div>
+<div id="wrap_pex"><label for="pex">Poupança pedagógica (PEX)</label><input id="pex" inputmode="decimal" placeholder="ex.: 0,6"></div>
 </div></div>
-<div class="card">
+<div class="card" id="card_qual">
 <h2>Parte qualitativa</h2>
 <p class="hint">Média simples das quatro notas.</p>
 <div class="grid">
 <div><label for="q1">Frequência (AQL1)</label><input id="q1" inputmode="decimal" placeholder="0 a 10"></div>
-<div><label for="q2">Comportamento e postura (AQL2)</label><input id="q2" inputmode="decimal" placeholder="0 a 10"></div>
-<div><label for="q3">Participação em sala (AQL3)</label><input id="q3" inputmode="decimal" placeholder="0 a 10"></div>
+<div><label for="q2">Comportamento (AQL2)</label><input id="q2" inputmode="decimal" placeholder="0 a 10"></div>
+<div><label for="q3">Participação (AQL3)</label><input id="q3" inputmode="decimal" placeholder="0 a 10"></div>
 <div><label for="q4">Responsabilidade (AQL4)</label><input id="q4" inputmode="decimal" placeholder="0 a 10"></div>
 </div></div>
 <div class="card result" aria-live="polite"><h2 id="rtitle">Média do trimestre</h2><div id="out"></div></div>
@@ -124,6 +124,21 @@ summary{cursor:pointer;font-weight:600}
 var MATERIAS=["Língua Portuguesa","Literatura","Produção de Texto","Língua Inglesa","Arte","Educação Física","História","Geografia","Filosofia","Sociologia","Física","Química","Biologia","Matemática","Projeto de Vida","Espiritualidade","Maker (Ciências, Tecnologia e Empreendedorismo)"];
 var COR={"Língua Portuguesa":"#e0524d","Literatura":"#7c3aed","Produção de Texto":"#d6458a","Língua Inglesa":"#d9690f","Arte":"#b7791f","Educação Física":"#2a8f50","História":"#a0522d","Geografia":"#0b8f7e","Filosofia":"#5865d9","Sociologia":"#6b7f3a","Física":"#3b82f6","Química":"#c04aa8","Biologia":"#5fa31f","Matemática":"#c2185b","Projeto de Vida":"#e0643a","Espiritualidade":"#8e72cf"};
 COR[MATERIAS[16]]="#0891b2";
+
+var REGRAS = {
+  "normal": { ap2: true, ac: true, sim: true, pex: true, qual: true },
+  "sem_ac": { ap2: true, ac: false, sim: true, pex: false, qual: true },
+  "so_mpr": { ap2: false, ac: false, sim: false, pex: false, qual: true }
+};
+
+var MAP_REGRA = {
+  "Língua Portuguesa": "normal", "Literatura": "normal", "Língua Inglesa": "normal", "Arte": "normal",
+  "História": "normal", "Geografia": "normal", "Filosofia": "normal", "Sociologia": "normal",
+  "Química": "normal", "Biologia": "normal", "Matemática": "normal", "Física": "normal",
+  "Produção de Texto": "sem_ac",
+  "Educação Física": "so_mpr", "Projeto de Vida": "so_mpr", "Espiritualidade": "so_mpr", "Maker (Ciências, Tecnologia e Empreendedorismo)": "so_mpr"
+};
+
 var ids=["acd","ap2","ac","sim","pex","q1","q2","q3","q4"],MEDIA=8;
 var $=function(i){return document.getElementById(i)};
 function lab(m){return m.split(" (")[0]}
@@ -136,37 +151,181 @@ function t1(x){return tr(x).toFixed(1).replace(".",",")}
 function c1(x){return (Math.ceil(x*10-1e-9)/10).toFixed(1).replace(".",",")}
 function rd(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
 function wr(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
 var data=rd("notasFGB2");
 if(!data){data={1:rd("notasFGB")||{},2:{},3:{}}}
 var med=rd("finalFGB")||{},cur=MATERIAS[0],T=1,MT=1;
 function saveD(){wr("notasFGB2",data)}function saveM(){wr("finalFGB",med)}
+
 function seg(id,get,set){
   $(id).innerHTML=[1,2,3].map(function(i){return '<button type="button" aria-pressed="'+(get()===i)+'" data-i="'+i+'">'+i+'º trimestre</button>'}).join("");
   Array.prototype.forEach.call($(id).querySelectorAll("button"),function(b){b.onclick=function(){set(+b.getAttribute("data-i"))}});
 }
-function compute(d){
-  var v={};ids.forEach(function(i){v[i]=num(d[i])});
-  var parcial=wavg([[v.acd,.4],[v.ap2,.6]]),quant=wavg([[parcial,.5],[v.ac,.25],[v.sim,.25]]),pex=v.pex||0;
-  var quantP=quant===null?null:Math.min(10,quant+pex),qual=wavg([[v.q1,1],[v.q2,1],[v.q3,1],[v.q4,1]]);
-  if(quantP===null&&qual===null)return null;
-  var wq=(v.ap2===null&&v.ac===null&&v.sim===null)?.5:.7,total;
-  if(quantP===null)total=qual;else if(qual===null)total=quantP;else total=wq*quantP+(1-wq)*qual;
-  return {total:total,parcial:parcial,quant:quant,quantP:quantP,qual:qual,wq:wq,pex:pex};
+
+function compute(d, mat){
+  var regra = MAP_REGRA[mat] || "normal";
+  var cfg = REGRAS[regra];
+  
+  var hasAny = false;
+  for (var i=0; i<ids.length; i++) {
+    if (cfg[ids[i]] !== false && d[ids[i]] !== undefined && d[ids[i]].trim() !== "") { hasAny = true; break; }
+  }
+  if (!hasAny) return null;
+
+  function v(key, fallback) {
+    if (cfg[key] === false) return fallback;
+    var val = d[key];
+    if (!val || val.trim() === "") return 0;
+    var n = parseFloat(val.replace(",", "."));
+    return isNaN(n) ? 0 : Math.max(0, Math.min(10, n));
+  }
+
+  var acd = v("acd");
+  var ap2 = v("ap2", null);
+  var ac = v("ac", null);
+  var sim = v("sim", null);
+  var pex = v("pex", 0);
+
+  var mpr = cfg.ap2 ? (acd * 0.4 + ap2 * 0.6) : acd;
+  
+  var quant = null;
+  if (cfg.ac && cfg.sim) {
+      quant = (mpr * 0.5) + (ac * 0.25) + (sim * 0.25);
+  } else if (!cfg.ac && cfg.sim) {
+      quant = (mpr * 0.5) + (sim * 0.5);
+  } else {
+      quant = mpr;
+  }
+
+  var quantP = quant === null ? null : Math.min(10, quant + pex);
+  var qual = null;
+  if (cfg.qual) {
+      var q1 = v("q1"), q2 = v("q2"), q3 = v("q3"), q4 = v("q4");
+      qual = (q1 + q2 + q3 + q4) / 4;
+  }
+
+  var total;
+  if (quantP !== null && qual !== null) {
+      total = (quantP * 0.7) + (qual * 0.3);
+  } else if (quantP !== null) {
+      total = quantP;
+  } else {
+      total = qual;
+  }
+
+  return {total:total, parcial:mpr, quant:quant, quantP:quantP, qual:qual, wq:0.7, pex:pex};
 }
+
+function trimestreCompleto(mat, T) {
+  var regra = MAP_REGRA[mat] || "normal";
+  var cfg = REGRAS[regra];
+  var d = data[T][mat] || {};
+  
+  if (!d.acd || d.acd.trim() === "") return false;
+  if (cfg.ap2 && (!d.ap2 || d.ap2.trim() === "")) return false;
+  if (cfg.ac && (!d.ac || d.ac.trim() === "")) return false;
+  if (cfg.sim && (!d.sim || d.sim.trim() === "")) return false;
+  
+  if (cfg.qual) {
+    if (!d.q1 || d.q1.trim() === "" || !d.q2 || d.q2.trim() === "" || !d.q3 || d.q3.trim() === "" || !d.q4 || d.q4.trim() === "") return false;
+  }
+  return true;
+}
+
+function calcMediaHipotetica(mat, T, notaFaltante) {
+  var d = JSON.parse(JSON.stringify(data[T][mat] || {}));
+  var regra = MAP_REGRA[mat] || "normal";
+  var cfg = REGRAS[regra];
+  
+  if (!d.acd || d.acd.trim() === "") d.acd = notaFaltante.toString();
+  if (cfg.ap2 && (!d.ap2 || d.ap2.trim() === "")) d.ap2 = notaFaltante.toString();
+  if (cfg.ac && (!d.ac || d.ac.trim() === "")) d.ac = notaFaltante.toString();
+  if (cfg.sim && (!d.sim || d.sim.trim() === "")) d.sim = notaFaltante.toString();
+  
+  if (cfg.qual) {
+    if (!d.q1 || d.q1.trim() === "") d.q1 = notaFaltante.toString();
+    if (!d.q2 || d.q2.trim() === "") d.q2 = notaFaltante.toString();
+    if (!d.q3 || d.q3.trim() === "") d.q3 = notaFaltante.toString();
+    if (!d.q4 || d.q4.trim() === "") d.q4 = notaFaltante.toString();
+  }
+  
+  var r = compute(d, mat);
+  return r ? r.total : 0;
+}
+
 function stat(m){
   var t=[0,1,2].map(function(i){return num((med[m]||[])[i])});
-  var fl=t.filter(function(x){return x!==null}),sum=fl.reduce(function(a,b){return a+b},0);
-  if(fl.length===3){var avg=sum/3;
-    if(avg>=MEDIA)return {k:"ok",l:"APROVADO",t:"Média anual "+f(avg)};
-    var need=12-avg;
-    if(need>10)return {k:"fin",l:"FINAL",t:"Média anual "+f(avg)+". Nem com 10 na prova final passa"};
-    return {k:"fin",l:"FINAL",t:"Média anual "+f(avg),n:c1(need),nt:"na prova final para passar"}}
-  if(fl.length===2){var falta=t.indexOf(null)+1,nd=MEDIA*3-sum;
-    if(nd<=0)return {k:"ok",l:"APROVADO",t:"Média garantida, mesmo com zero no "+falta+"º trimestre"};
-    if(nd>10)return {k:"fin",l:"FINAL",t:"Mesmo com 10 no "+falta+"º trimestre, vai para a final"};
-    return {k:"mid",l:"",t:"Ainda em aberto",n:c1(nd),nt:"no "+falta+"º trimestre para passar direto"}}
-  return {k:"mid",l:"",t:"Preencha pelo menos dois trimestres"};
+  var completos = [1, 2, 3].map(function(T) { return trimestreCompleto(m, T); });
+  var hasSomeNota = [1, 2, 3].map(function(T) { 
+      var d = data[T][m] || {};
+      return Object.values(d).some(function(v){ return v && v.trim() !== ""; });
+  });
+
+  var todosCompletos = completos[0] && completos[1] && completos[2];
+  if (todosCompletos) {
+      var avg = (t[0] + t[1] + t[2]) / 3;
+      if (avg >= MEDIA) return {k:"ok",l:"APROVADO",t:"Média anual "+f(avg)};
+      var need = 12 - avg;
+      if (need > 10) return {k:"fin",l:"FINAL",t:"Média anual "+f(avg)+". Nem com 10 na prova final passa"};
+      return {k:"fin",l:"FINAL",t:"Média anual "+f(avg),n:c1(need),nt:"na prova final para passar"};
+  }
+
+  var temQualquerNota = hasSomeNota[0] || hasSomeNota[1] || hasSomeNota[2];
+  if (!temQualquerNota) return {k:"mid",l:"",t:"Preencha as notas para ver a situação."};
+
+  var somaAtual = 0;
+  var faltamInteiros = 0;
+  var partialT = -1;
+  var faltandoTrims = [];
+
+  for (var i=1; i<=3; i++) {
+      if (completos[i-1]) {
+          somaAtual += t[i-1];
+      } else if (hasSomeNota[i-1]) {
+          somaAtual += calcMediaHipotetica(m, i, 0);
+          partialT = i;
+      } else {
+          faltamInteiros++;
+          faltandoTrims.push(i);
+      }
+  }
+
+  if (somaAtual >= MEDIA * 3) {
+      return {k:"ok", l:"APROVADO", t:"Em aberto, mas já aprovado (" + t1(somaAtual/3) + ")"};
+  }
+
+  var maxTotal = somaAtual + (faltamInteiros * 10);
+  if (partialT !== -1) {
+      maxTotal += (10 - calcMediaHipotetica(m, partialT, 0));
+  }
+
+  if (maxTotal < MEDIA * 3) {
+      return {k:"fin", l:"FINAL", t:"Mesmo com 10 nas notas que faltam, vai para a final"};
+  }
+
+  if (faltamInteiros > 0) {
+      var nd = (MEDIA * 3 - somaAtual) / faltamInteiros;
+      if (nd > 10) {
+          var faltaPontos = MEDIA * 3 - somaAtual;
+          return {k:"mid",l:"",t:"Em aberto",n:c1(faltaPontos),nt:"pontos no total para passar direto"};
+      }
+
+      var faltaStr = "";
+      if (faltandoTrims.length === 1) {
+          faltaStr = "no " + faltandoTrims[0] + "º trimestre";
+      } else if (faltandoTrims.length === 2) {
+          faltaStr = "nos " + faltandoTrims[0] + "º e " + faltandoTrims[1] + "º trimestres";
+      } else {
+          faltaStr = "nos " + faltandoTrims[0] + "º, " + faltandoTrims[1] + "º e " + faltandoTrims[2] + "º trimestres";
+      }
+
+      return {k:"mid",l:"",t:"Em aberto",n:c1(nd),nt:"de média " + faltaStr + " para passar direto"};
+  } else {
+      var faltaPontos = MEDIA * 3 - somaAtual;
+      return {k:"mid",l:"",t:"Em aberto",n:c1(faltaPontos),nt:"pontos nas notas restantes para passar direto"};
+  }
 }
+
 function sh(r){return (r.l?'<b class="bd">'+r.l+'</b>':"")+r.t}
 function pct(v){var n=num(v);return n===null?0:n*10}
 /* Trimestre */
@@ -228,17 +387,26 @@ function renderChips(){
   Array.prototype.forEach.call($("chips").querySelectorAll(".chip"),function(b){b.onclick=function(){cur=b.getAttribute("data-m");load()}});
 }
 function calc(){
-  var r=compute(data[MT][cur]||{}),out=$("out");
+  var r=compute(data[MT][cur]||{},cur),out=$("out");
   $("rtitle").textContent="Média do "+MT+"º trimestre: "+lab(cur);
   if(!r){out.innerHTML='<p class="msg">Digite ao menos uma nota para ver o resultado.</p>';return}
   var rows="";
   if(r.parcial!==null)rows+="<dt>Média parcial</dt><dd>"+f(r.parcial)+"</dd>";
   if(r.quant!==null){rows+="<dt>Média quantitativa</dt><dd>"+f(r.quant)+"</dd>";if(r.pex)rows+="<dt>+ Poupança pedagógica</dt><dd>"+f(r.quantP)+"</dd>"}
   if(r.qual!==null)rows+="<dt>Média qualitativa</dt><dd>"+f(r.qual)+"</dd>";
-  if(r.quantP!==null&&r.qual!==null)rows+="<dt>Pesos</dt><dd>"+Math.round(r.wq*100)+"% quant. + "+Math.round((1-r.wq)*100)+"% qual.</dd>";
+  if(r.quantP!==null&&r.qual!==null)rows+="<dt>Pesos</dt><dd>70% quant. + 30% qual.</dd>";
   out.innerHTML='<div class="big">'+t1(r.total)+'</div><p class="exact">valor exato: '+f(r.total)+'</p><dl>'+rows+'</dl>';
 }
 function load(){
+  var regra = MAP_REGRA[cur] || "normal";
+  var cfg = REGRAS[regra];
+  
+  $("wrap_ap2").style.display = cfg.ap2 ? "block" : "none";
+  $("wrap_ac").style.display = cfg.ac ? "block" : "none";
+  $("wrap_sim").style.display = cfg.sim ? "block" : "none";
+  $("wrap_pex").style.display = cfg.pex ? "block" : "none";
+  $("card_qual").style.display = cfg.qual ? "block" : "none";
+
   var d=data[MT][cur]||{};
   ids.forEach(function(i){$(i).value=d[i]||""});
   $("vM").style.setProperty("--mc",COR[cur]);
@@ -247,7 +415,7 @@ function load(){
 }
 ids.forEach(function(i){$(i).addEventListener("input",function(){
   data[MT][cur]=data[MT][cur]||{};data[MT][cur][i]=$(i).value;saveD();calc();
-  var r=compute(data[MT][cur]);
+  var r=compute(data[MT][cur], cur);
   if(r){med[cur]=med[cur]||["","",""];med[cur][MT-1]=t1(r.total);saveM()}
 })});
 $("clr").onclick=function(){data[MT][cur]={};saveD();load()};
