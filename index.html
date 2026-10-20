@@ -62,8 +62,11 @@ summary{cursor:pointer;font-weight:600}
 .nums b{color:var(--ink);font-weight:600;margin-left:3px}
 .need{display:flex;align-items:baseline;gap:10px;margin-top:10px;padding:9px 12px;border-radius:10px;border-left:4px solid var(--fin);background:color-mix(in srgb,var(--fin) 14%,var(--card))}
 .need.mid{border-left-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--card))}
+.need.ok{border-left-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
 .need b{font-size:1.8rem;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
 .need span{font-size:.92rem}
+.rec-box{margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
+.rec-box h3{font-size:1rem;margin:0 0 2px;color:var(--fin)}
 </style>
 </head>
 <body>
@@ -105,7 +108,7 @@ summary{cursor:pointer;font-weight:600}
 <div id="wrap_ap2"><label for="ap2">Avaliação parcial (AP2)</label><input id="ap2" inputmode="decimal" placeholder="0 a 10"></div>
 <div id="wrap_ac"><label for="ac">Conclusiva (AC)</label><input id="ac" inputmode="decimal" placeholder="0 a 10"></div>
 <div id="wrap_sim"><label for="sim">Simulado (SIM)</label><input id="sim" inputmode="decimal" placeholder="0 a 10"></div>
-<div id="wrap_pex"><label for="pex">Poupança pedagógica (PEX)</label><input id="pex" inputmode="decimal" placeholder="ex.: 0,6"></div>
+<div id="wrap_pex"><label for="pex">Poupança pedagógica (PEX)</label><input id="pex" inputmode="decimal" placeholder="máx.: 2,0"></div>
 </div></div>
 <div class="card" id="card_qual">
 <h2>Parte qualitativa</h2>
@@ -116,7 +119,19 @@ summary{cursor:pointer;font-weight:600}
 <div><label for="q3">Participação (AQL3)</label><input id="q3" inputmode="decimal" placeholder="0 a 10"></div>
 <div><label for="q4">Responsabilidade (AQL4)</label><input id="q4" inputmode="decimal" placeholder="0 a 10"></div>
 </div></div>
-<div class="card result" aria-live="polite"><h2 id="rtitle">Média do trimestre</h2><div id="out"></div></div>
+
+<div class="card result" aria-live="polite">
+  <h2 id="rtitle">Média do trimestre</h2>
+  <div id="out"></div>
+  
+  <div class="rec-box" id="rec_box" style="display:none;">
+    <h3>Recuperação</h3>
+    <p class="hint">Substitui a parte quantitativa. A maior nota prevalece.</p>
+    <label for="rec">Nota da Recuperação</label>
+    <input id="rec" inputmode="decimal" placeholder="0 a 10">
+  </div>
+</div>
+
 <button id="clr" type="button">Limpar notas desta matéria</button>
 </div>
 </main>
@@ -177,7 +192,8 @@ function compute(d, mat){
     var val = d[key];
     if (!val || val.trim() === "") return 0;
     var n = parseFloat(val.replace(",", "."));
-    return isNaN(n) ? 0 : Math.max(0, Math.min(10, n));
+    var max = (key === "pex") ? 2 : 10;
+    return isNaN(n) ? 0 : Math.max(0, Math.min(max, n));
   }
 
   var acd = v("acd");
@@ -255,19 +271,28 @@ function calcMediaHipotetica(mat, T, notaFaltante) {
 
 function stat(m){
   var t=[0,1,2].map(function(i){return num((med[m]||[])[i])});
-  var completos = [1, 2, 3].map(function(T) { return trimestreCompleto(m, T); });
+  
+  var completos = [1, 2, 3].map(function(T) { 
+      if (t[T-1] !== null) return true;
+      return trimestreCompleto(m, T); 
+  });
+  
   var hasSomeNota = [1, 2, 3].map(function(T) { 
       var d = data[T][m] || {};
-      return Object.values(d).some(function(v){ return v && v.trim() !== ""; });
+      return t[T-1] !== null || Object.values(d).some(function(v){ return v && v.trim() !== ""; });
   });
 
   var todosCompletos = completos[0] && completos[1] && completos[2];
   if (todosCompletos) {
       var avg = (t[0] + t[1] + t[2]) / 3;
-      if (avg >= MEDIA) return {k:"ok",l:"APROVADO",t:"Média anual "+f(avg)};
+      if (avg >= MEDIA) {
+          return {k:"ok", l:"APROVADO", t:"", n:f(avg), nt:"média anual"};
+      }
       var need = 12 - avg;
-      if (need > 10) return {k:"fin",l:"FINAL",t:"Média anual "+f(avg)+". Nem com 10 na prova final passa"};
-      return {k:"fin",l:"FINAL",t:"Média anual "+f(avg),n:c1(need),nt:"na prova final para passar"};
+      if (need > 10) {
+          return {k:"fin", l:"FINAL", t:"", n:f(avg), nt:"média anual. Nem com 10 na prova final passa"};
+      }
+      return {k:"fin", l:"FINAL", t:"", n:c1(need), nt:"na prova final. Média anual "+f(avg)};
   }
 
   var temQualquerNota = hasSomeNota[0] || hasSomeNota[1] || hasSomeNota[2];
@@ -280,7 +305,7 @@ function stat(m){
 
   for (var i=1; i<=3; i++) {
       if (completos[i-1]) {
-          somaAtual += t[i-1];
+          somaAtual += t[i-1] !== null ? t[i-1] : 0;
       } else if (hasSomeNota[i-1]) {
           somaAtual += calcMediaHipotetica(m, i, 0);
           partialT = i;
@@ -291,7 +316,7 @@ function stat(m){
   }
 
   if (somaAtual >= MEDIA * 3) {
-      return {k:"ok", l:"APROVADO", t:"Em aberto, mas já aprovado (" + t1(somaAtual/3) + ")"};
+      return {k:"ok", l:"APROVADO", t:"Em aberto, mas já aprovado", n:f(somaAtual/3), nt:"média mínima garantida"};
   }
 
   var maxTotal = somaAtual + (faltamInteiros * 10);
@@ -346,6 +371,7 @@ $("tlist").addEventListener("input",function(e){
   var el=e.target,m=el.getAttribute("data-m");if(!m)return;
   med[m]=med[m]||["","",""];med[m][T-1]=el.value;saveM();
   el.closest(".frow").querySelector(".bar i").style.width=pct(el.value)+"%";tsum();
+  if(!$("vA").hidden) renderA();
 });
 $("tlist").addEventListener("click",function(e){var b=e.target.closest("[data-go]");if(!b)return;cur=b.getAttribute("data-go");MT=T;tab("M")});
 function pasteBoletim(){
@@ -362,6 +388,7 @@ function pasteBoletim(){
     [0,15,30].forEach(function(o,t){var d={};["acd","ap2","pex","ac","sim","q1","q2","q3","q4"].forEach(function(k,q){var x=vals[o+q];d[k]=/^\d/.test(x)?x:(x==="zero"?"0":"")});data[t+1][best]=d});n++;
   });
   saveM();saveD();renderT();
+  if(!$("vA").hidden) renderA();
   $("pmsg").textContent=n?"Preenchi "+n+(n===1?" matéria":" matérias")+" (médias e notas de cada prova). Confira se bate com o boletim.":"Não reconheci nenhuma matéria. Copie as linhas da tabela, começando pelo nome da matéria, e cole de novo.";
   if(n)$("ptxt").value="";
 }
@@ -374,7 +401,9 @@ function renderA(){
     var v=[0,1,2].map(function(i){return num((med[m]||[])[i])}),fl=v.filter(function(x){return x!==null}),r=stat(m);
     if(fl.length)avgs.push(fl.reduce(function(a,b){return a+b},0)/fl.length);
     if(r.l==="FINAL")fin.push(lab(m));else if(r.l==="APROVADO")ok++;else open++;
-    return '<div class="frow"><div class="fname"><i class="dot" style="background:'+COR[m]+'"></i>'+lab(m)+'</div><div class="nums">'+v.map(function(x,i){return '<span>'+(i+1)+'º<b>'+(x===null?"–":t1(x))+'</b></span>'}).join("")+'</div><div class="fstat '+r.k+'">'+sh(r)+'</div>'+(r.n?'<div class="need '+(r.l==="FINAL"?"fin":"mid")+'"><b>'+r.n+'</b><span>'+r.nt+'</span></div>':"")+'</div>';
+    
+    var needClass = r.l === "FINAL" ? "fin" : (r.l === "APROVADO" ? "ok" : "mid");
+    return '<div class="frow"><div class="fname"><i class="dot" style="background:'+COR[m]+'"></i>'+lab(m)+'</div><div class="nums">'+v.map(function(x,i){return '<span>'+(i+1)+'º<b>'+(x===null?"–":t1(x))+'</b></span>'}).join("")+'</div><div class="fstat '+r.k+'">'+sh(r)+'</div>'+(r.n?'<div class="need '+needClass+'"><b>'+r.n+'</b><span>'+r.nt+'</span></div>':"")+'</div>';
   });
   $("alist").innerHTML=rows.join("");
   if(!avgs.length){$("asum").innerHTML='<p class="msg">Preencha as médias dos trimestres para ver a média do ano.</p>';return}
@@ -387,16 +416,77 @@ function renderChips(){
   Array.prototype.forEach.call($("chips").querySelectorAll(".chip"),function(b){b.onclick=function(){cur=b.getAttribute("data-m");load()}});
 }
 function calc(){
-  var r=compute(data[MT][cur]||{},cur),out=$("out");
-  $("rtitle").textContent="Média do "+MT+"º trimestre: "+lab(cur);
-  if(!r){out.innerHTML='<p class="msg">Digite ao menos uma nota para ver o resultado.</p>';return}
-  var rows="";
-  if(r.parcial!==null)rows+="<dt>Média parcial</dt><dd>"+f(r.parcial)+"</dd>";
-  if(r.quant!==null){rows+="<dt>Média quantitativa</dt><dd>"+f(r.quant)+"</dd>";if(r.pex)rows+="<dt>+ Poupança pedagógica</dt><dd>"+f(r.quantP)+"</dd>"}
-  if(r.qual!==null)rows+="<dt>Média qualitativa</dt><dd>"+f(r.qual)+"</dd>";
-  if(r.quantP!==null&&r.qual!==null)rows+="<dt>Pesos</dt><dd>70% quant. + 30% qual.</dd>";
-  out.innerHTML='<div class="big">'+t1(r.total)+'</div><p class="exact">valor exato: '+f(r.total)+'</p><dl>'+rows+'</dl>';
+  var d = data[MT][cur] || {};
+  var r = compute(d, cur), out = $("out");
+  var cardRec = $("rec_box");
+  var recVal = num(d.rec);
+
+  $("rtitle").textContent = "Média do " + MT + "º trimestre: " + lab(cur);
+
+  if (!r) {
+      out.innerHTML = '<p class="msg">Digite ao menos uma nota para ver o resultado.</p>';
+      cardRec.style.display = "none";
+      if (med[cur] && med[cur][MT-1] !== "") {
+          med[cur][MT-1] = "";
+          saveM();
+      }
+      return;
+  }
+
+  // Correção do bug de ponto flutuante (ex: 7.999999 vira 8)
+  var mediaArredondada = Math.round(r.total * 100) / 100;
+  var completo = trimestreCompleto(cur, MT);
+  var maxPossible = calcMediaHipotetica(cur, MT, 10); 
+  var impossivel = maxPossible < (MEDIA - 0.0001);
+
+  var mostrarRec = false;
+
+  if (mediaArredondada < MEDIA - 0.0001) { 
+      if (completo || impossivel) {
+          mostrarRec = true;
+      }
+  }
+
+  if (mostrarRec) {
+      cardRec.style.display = "block";
+      if (document.activeElement !== $("rec")) {
+          $("rec").value = d.rec || "";
+      }
+  } else {
+      cardRec.style.display = "none";
+  }
+
+  var finalTotal = r.total;
+  var recUsed = false;
+
+  if (mostrarRec && recVal !== null) {
+      var newTotal = recVal;
+      if (r.qual !== null) {
+          newTotal = (recVal * 0.7) + (r.qual * 0.3);
+      }
+      if (newTotal > finalTotal) {
+          finalTotal = newTotal;
+          recUsed = true;
+      }
+  }
+
+  var rows = "";
+  if (r.parcial !== null) rows += "<dt>Média parcial</dt><dd>" + f(r.parcial) + "</dd>";
+  if (r.quant !== null) {
+      rows += "<dt>Média quantitativa</dt><dd>" + f(r.quant) + "</dd>";
+      if (r.pex) rows += "<dt>+ Poupança pedagógica</dt><dd>" + f(r.quantP) + "</dd>";
+  }
+  if (r.qual !== null) rows += "<dt>Média qualitativa</dt><dd>" + f(r.qual) + "</dd>";
+  if (r.quantP !== null && r.qual !== null) rows += "<dt>Pesos</dt><dd>70% quant. + 30% qual.</dd>";
+
+  var html = '<div class="big">' + t1(finalTotal) + '</div><p class="exact">valor exato: ' + f(finalTotal) + (recUsed ? ' (Nota da recuperação utilizada)' : '') + '</p><dl>' + rows + '</dl>';
+  out.innerHTML = html;
+
+  med[cur] = med[cur] || ["", "", ""];
+  med[cur][MT - 1] = t1(finalTotal);
+  saveM();
 }
+
 function load(){
   var regra = MAP_REGRA[cur] || "normal";
   var cfg = REGRAS[regra];
@@ -415,17 +505,27 @@ function load(){
 }
 ids.forEach(function(i){$(i).addEventListener("input",function(){
   data[MT][cur]=data[MT][cur]||{};data[MT][cur][i]=$(i).value;saveD();calc();
-  var r=compute(data[MT][cur], cur);
-  if(r){med[cur]=med[cur]||["","",""];med[cur][MT-1]=t1(r.total);saveM()}
+  if(!$("vA").hidden) renderA();
 })});
+$("rec").addEventListener("input", function(){
+  data[MT][cur] = data[MT][cur] || {};
+  data[MT][cur].rec = this.value;
+  saveD(); calc();
+  if(!$("vA").hidden) renderA();
+});
 $("clr").onclick=function(){data[MT][cur]={};saveD();load()};
+
 document.addEventListener("input",function(e){
   var el=e.target;if(el.tagName!=="INPUT")return;
   var v=el.value.replace(/[^0-9.,]/g,""),k=v.search(/[.,]/);
   if(k>=0)v=v.slice(0,k+1)+v.slice(k+1).replace(/[.,]/g,"").slice(0,2);
-  if(parseFloat(v.replace(",","."))>10)v="10";
+  
+  var maxVal = (el.id === "pex") ? 2 : 10; 
+  
+  if(parseFloat(v.replace(",","."))>maxVal)v=maxVal.toString();
   if(v!==el.value)el.value=v;
 },true);
+
 function tab(n){
   ["T","A","M"].forEach(function(k){$("v"+k).hidden=k!==n;$("t"+k).setAttribute("aria-selected",k===n)});
   if(n==="T")renderT();if(n==="A")renderA();if(n==="M")load();
