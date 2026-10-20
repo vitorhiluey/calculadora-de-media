@@ -272,9 +272,18 @@ function calcMediaHipotetica(mat, T, notaFaltante) {
 function stat(m){
   var t=[0,1,2].map(function(i){return num((med[m]||[])[i])});
   
+  // Lógica corrigida para identificar se o trimestre está realmente fechado
   var completos = [1, 2, 3].map(function(T) { 
-      if (t[T-1] !== null) return true;
-      return trimestreCompleto(m, T); 
+      var d = data[T][m] || {};
+      var temDadosParciais = Object.values(d).some(function(v){ return v && v.trim() !== ""; });
+      
+      if (temDadosParciais) {
+          // Se foi preenchido na aba Matéria, precisa estar 100% completo
+          return trimestreCompleto(m, T);
+      } else {
+          // Se não tem dados parciais (digitou direto na aba Trimestre), consideramos completo
+          return t[T-1] !== null;
+      }
   });
   
   var hasSomeNota = [1, 2, 3].map(function(T) { 
@@ -433,7 +442,6 @@ function calc(){
       return;
   }
 
-  // Correção do bug de ponto flutuante (ex: 7.999999 vira 8)
   var mediaArredondada = Math.round(r.total * 100) / 100;
   var completo = trimestreCompleto(cur, MT);
   var maxPossible = calcMediaHipotetica(cur, MT, 10); 
