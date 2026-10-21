@@ -369,7 +369,7 @@ function tsum(){
   if(!a.length){$("tsum").innerHTML='<p class="msg">Preencha as médias do '+T+'º trimestre para ver a média geral.</p>';return}
   var avg=a.reduce(function(s,x){return s+x[0]},0)/a.length,mx=a[0],mn=a[0],ab=0;
   a.forEach(function(x){if(x[0]>mx[0])mx=x;if(x[0]<mn[0])mn=x;if(x[0]<MEDIA)ab++});
-  $("tsum").innerHTML='<h2>Média geral do '+T+'º trimestre</h2><div class="big">'+t1(avg)+'</div><p class="exact">valor exato: '+f1(avg)+' ('+a.length+' de '+MATERIAS.length+' matérias)</p><dl><dt>Maior média</dt><dd>'+lab(mx[1])+' '+t1(mx[0])+'</dd><dt>Menor média</dt><dd>'+lab(mn[1])+' '+t1(mn[0])+'</dd><dt>Abaixo de 8</dt><dd>'+ab+'</dd></dl>';
+  $("tsum").innerHTML='<h2>Média geral do '+T+'º trimestre</h2><div class="big">'+t1(avg)+'</div><p class="exact">valor exato: '+f(avg)+' ('+a.length+' de '+MATERIAS.length+' matérias)</p><dl><dt>Maior média</dt><dd>'+lab(mx[1])+' '+t1(mx[0])+'</dd><dt>Menor média</dt><dd>'+lab(mn[1])+' '+t1(mn[0])+'</dd><dt>Abaixo de 8</dt><dd>'+ab+'</dd></dl>';
 }
 function renderT(){
   seg("segT",function(){return T},function(i){T=i;renderT()});
@@ -418,7 +418,7 @@ function renderA(){
   $("alist").innerHTML=rows.join("");
   if(!avgs.length){$("asum").innerHTML='<p class="msg">Preencha as médias dos trimestres para ver a média do ano.</p>';return}
   var avg=avgs.reduce(function(a,b){return a+b},0)/avgs.length;
-  $("asum").innerHTML='<h2>Média geral do ano</h2><div class="big">'+t1(avg)+'</div><p class="exact">valor exato: '+f1(avg)+' (com os trimestres já preenchidos)</p><dl><dt>Aprovadas</dt><dd>'+ok+'</dd><dt>Na final</dt><dd>'+fin.length+'</dd><dt>Em aberto</dt><dd>'+open+'</dd></dl>'+(fin.length?'<p class="exact" style="margin:10px 0 0">Final em: '+fin.join(", ")+'</p>':"");
+  $("asum").innerHTML='<h2>Média geral do ano</h2><div class="big">'+t1(avg)+'</div><p class="exact">valor exato: '+f(avg)+' (com os trimestres já preenchidos)</p><dl><dt>Aprovadas</dt><dd>'+ok+'</dd><dt>Na final</dt><dd>'+fin.length+'</dd><dt>Em aberto</dt><dd>'+open+'</dd></dl>'+(fin.length?'<p class="exact" style="margin:10px 0 0">Final em: '+fin.join(", ")+'</p>':"");
 }
 /* Matéria */
 function renderChips(){
@@ -488,7 +488,7 @@ function calc(){
   if (r.qual !== null) rows += "<dt>Média qualitativa</dt><dd>" + f1(r.qual) + "</dd>";
   if (r.quantP !== null && r.qual !== null) rows += "<dt>Pesos</dt><dd>70% quant. + 30% qual.</dd>";
 
-  var html = '<div class="big">' + t1(finalTotal) + '</div><p class="exact">valor exato: ' + f1(finalTotal) + (recUsed ? ' (Nota da recuperação utilizada)' : '') + '</p><dl>' + rows + '</dl>';
+  var html = '<div class="big">' + t1(finalTotal) + '</div><p class="exact">valor exato: ' + f(finalTotal) + (recUsed ? ' (Nota da recuperação utilizada)' : '') + '</p><dl>' + rows + '</dl>';
   out.innerHTML = html;
 
   med[cur] = med[cur] || ["", "", ""];
