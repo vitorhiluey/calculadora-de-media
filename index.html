@@ -45,9 +45,9 @@ button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink
 .frow{padding:12px 0;border-bottom:1px solid var(--line)}.frow:last-child{border-bottom:0}
 .fname{font-weight:600;margin-bottom:6px}
 .fin{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fin input{padding:8px 10px}
-.fstat{margin-top:6px;font-size:.88rem;font-weight:600}
+.fstat{margin-top:8px;font-size:.88rem;font-weight:600; line-height: 1.2;}
 .fstat.ok{color:var(--ok)}.fstat.fin{color:var(--fin)}
-.bd{border:1.5px solid currentColor;border-radius:6px;padding:1px 7px;margin-right:6px;font-size:.8rem;letter-spacing:.03em}.fstat.mid{color:var(--mute);font-weight:400}
+.bd{display:inline-block; border:1.5px solid currentColor;border-radius:4px;padding:1px 6px;font-size:.75rem;letter-spacing:.05em;vertical-align:middle; line-height: 1.2;}.fstat.mid{color:var(--mute);font-weight:400}
 textarea{resize:vertical;font-size:.85rem}
 summary{cursor:pointer;font-weight:600}
 .seg{display:flex;gap:6px;margin-bottom:12px}.seg button{flex:1;padding:8px 0}
@@ -357,7 +357,11 @@ function stat(m){
   }
 }
 
-function sh(r){return (r.l?'<b class="bd">'+r.l+'</b>':"")+r.t}
+function sh(r){
+  // Se tiver label e texto, usa margem. Se só tiver label, não usa margem.
+  var m = r.t ? ' style="margin-right:6px"' : '';
+  return (r.l?'<b class="bd"'+m+'>'+r.l+'</b>':"")+r.t;
+}
 function pct(v){var n=num(v);return n===null?0:n*10}
 /* Trimestre */
 function tsum(){
